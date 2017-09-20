@@ -56,9 +56,16 @@ if (in_array( 'woocommerce/woocommerce.php', apply_filters('active_plugins', get
         if ($primary_menu_id != false) {
             $menu_items = wp_get_nav_menu_items($primary_menu_id);
             foreach ($menu_items as $menu_item) {
-                var_dump($menu_item->ID);
                 wp_delete_post($menu_item->ID, true);
             }
+        }
+
+        if ($primary_menu_id) {
+            wp_update_nav_menu_item($primary_menu_id, 0, array(
+                'menu-item-title' =>  __('Home'),
+                //'menu-item-classes' => 'home',
+                'menu-item-url' => home_url( '/' ), 
+                'menu-item-status' => 'publish'));
         }
     }
 }
