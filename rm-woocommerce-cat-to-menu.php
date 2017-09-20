@@ -29,6 +29,14 @@ if (in_array( 'woocommerce/woocommerce.php', apply_filters('active_plugins', get
     }
     add_action('admin_menu', 'rm_add_to_admin_submenu');
 
+    // compare function for sorting categories
+    function cmp($x, $y) {
+        if ($x->term_id == $y->term_id) 
+            return 0;
+        else 
+            return $x->term_id > $y->term_id ? 1 : -1;
+    }
+
     // really action
     function rm_category_to_menu_callback() {
 
@@ -37,9 +45,7 @@ if (in_array( 'woocommerce/woocommerce.php', apply_filters('active_plugins', get
             'taxonomy' => 'product_cat',
             'hide_empty' => 0,
         ));
-        //foreach ($product_catgories as $c) {
-            //var_dump($c->name);
-        //}
+        usort($product_catgories, "cmp"); // sorting categories based on term_id
         
         // get primary menu id
         $primary_menu_id = False;
@@ -53,19 +59,28 @@ if (in_array( 'woocommerce/woocommerce.php', apply_filters('active_plugins', get
         }
 
         // delete all menu items of primary menu
-        if ($primary_menu_id != false) {
-            $menu_items = wp_get_nav_menu_items($primary_menu_id);
-            foreach ($menu_items as $menu_item) {
-                wp_delete_post($menu_item->ID, true);
-            }
-        }
+        //if ($primary_menu_id != false) {
+            //$menu_items = wp_get_nav_menu_items($primary_menu_id);
+            //foreach ($menu_items as $menu_item) {
+                //wp_delete_post($menu_item->ID, true);
+            //}
+        //}
 
         if ($primary_menu_id) {
-            wp_update_nav_menu_item($primary_menu_id, 0, array(
-                'menu-item-title' =>  __('Home'),
-                //'menu-item-classes' => 'home',
-                'menu-item-url' => home_url( '/' ), 
-                'menu-item-status' => 'publish'));
+            $parent2postMap = array(0); // parent 0 represents root menu item SHOULD give 0
+
+            foreach ($product_catgories as $c) {
+                $menu_item_data = array(
+                    'menu-item-title' =>  __($c->name),
+                    'menu-item-url' => get_term_link($c->term_id), 
+                    'menu-item-status' => 'publish'
+                );
+                $menu_item_data['menu-item-parent-id'] = $parent2postMap[$c->parent]; // get post id for menu item
+
+                $post_id = wp_update_nav_menu_item($primary_menu_id, 0, $menu_item_data);
+
+                $parent2postMap[$c->term_id] = $post_id; // update map
+            }
         }
     }
 }
